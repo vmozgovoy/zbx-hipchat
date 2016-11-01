@@ -43,6 +43,7 @@ Format the Default and Recovery Messages like so.
 >severity: "{TRIGGER.SEVERITY}"
 >url: "{TRIGGER.URL}"
 >description: "{TRIGGER.DESCRIPTION}"
+>itemid: "{ITEM.ID2}"
 
 
 The alerts look like the following in HipChat.
