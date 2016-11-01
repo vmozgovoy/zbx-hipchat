@@ -50,6 +50,7 @@ class ZabbixAlert(object):
                            severity: "{TRIGGER.SEVERITY}"
                            url: "{TRIGGER.URL}"
                            description: "{TRIGGER.DESCRIPTION}"
+                           itemid: "{ITEM.ID2}"
 
             hipname (str): The company name for your hipchat account.
 
@@ -68,7 +69,7 @@ class ZabbixAlert(object):
     def _parse(self):
         pattern = (r'name: *"(.*)"\s*id: *"(.*)"\s*status: *"(.*)"\s*hostname:'
                    r' *"(.*)"\s*event_id: *"(.*)"\s*severity: *"(.*)"\s*url: *'
-                   r'"(.*)"\s*description: *"([\w\W\s]*)"')
+                   r'"(.*)"\s*description: *"([\w\W\s]*)"\s*itemid: *"(.*)"')
         matches = re.match(pattern, self.message)
         return matches
 
@@ -109,6 +110,10 @@ class ZabbixAlert(object):
         desc = self._parse()
         return desc.group(8)
 
+    def _itemid(self):
+        itemid = self._parse()
+        return itemid.group(9)
+
     def images(self, okimg=None, probimg=None):
         """Set the image URLS for the icons used in OK and PROBLEM states."""
         self.okimg = okimg
@@ -141,14 +146,16 @@ class ZabbixAlert(object):
     def _formatmessage(self):
         message = ("{0}:{1} \n <a href='{5}"
                    "/tr_comments.php?triggerid={2}'>More Information</a> | "
-                   "<a href='{5}/events.php?"
-                   "filter_set=1&triggerid={2}&period=604800'>Events</a> | "
+                   "<a href='{5}/zabbix.php?action=problem.view&"
+                   "filter_triggerids[]={2}&filter_set=1&filter_show=2'>Events</a> | "
+                   "<a href='{5}/history.php?form_refresh=1&"
+                   "itemids[]={6}&action=showlatest'>Logs</a> | "
                    "<a href='{5}/zabbix.php?"
                    "action=acknowledge.edit&acknowledge_type=1&"
                    "eventids[]={3}&backurl=tr_status.php'>Acknowledge</a> | "
-                   "<a href='{4}'>Trigger Link</a></b>") \
+                   "<a href='{4}'>Trigger Link</a>") \
                     .format(self._status(), self._name(), self._triggerid(),
-                            self._eventid(), self._url(), self.zbxurl)
+                            self._eventid(), self._url(), self.zbxurl, self._itemid())
         return message
 
     def _card(self):
@@ -157,8 +164,8 @@ class ZabbixAlert(object):
         card = {
             "style": "application",
             "format": "medium",
-            "url": ("{1}/events.php?filter_set=1&"
-                    "triggerid={0}&period=604800").format(self._triggerid(),
+            "url": ("{1}/zabbix.php?action=problem.view&"
+                    "filter_triggerids[]={0}&filter_set=1").format(self._triggerid(),
                                                           self.zbxurl),
             "id": self._eventid(),
             "title": self._name(),
@@ -167,16 +174,18 @@ class ZabbixAlert(object):
                          "</b>").format(statloz, self._status(), self._name())},
             "description": {
                 "format": "html",
-                "value": ("<b><a href='{3}/"
-                          "tr_comments.php?triggerid={0}'>More Information</a>"
-                          " | <a href='{3}/events.php?"
-                          "filter_set=1&triggerid={0}&period=604800'>Events</a>"
-                          " | <a href='{3}/zabbix.php?"
+                "value": ("<b><a href='{3}"
+                          "/tr_comments.php?triggerid={0}'>More Information</a> | "
+                          "<a href='{3}/zabbix.php?action=problem.view&"
+                          "filter_triggerids[]={0}&filter_set=1&filter_show=2'>Events</a> | "
+                          "<a href='{3}/history.php?form_refresh=1&"
+                          "itemids[]={4}&action=showlatest'>Logs</a> | "
+                          "<a href='{3}/zabbix.php?"
                           "action=acknowledge.edit&acknowledge_type=1&"
-                          "eventids[]={1}&backurl=tr_status.php'>Acknowledge"
-                          "</a> | <a href='{2}'>Trigger Link</a></b>").format(
+                          "eventids[]={1}&backurl=tr_status.php'>Acknowledge</a> | "
+                          "<a href='{2}'>Trigger Link</a></b>").format(
                               self._triggerid(), self._eventid(), self._url(),
-                              self.zbxurl)},
+                              self.zbxurl, self._itemid())},
             "icon": {"url": statimg},
             "attributes": [{
                 "value": {
